@@ -2,8 +2,11 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use App\EventHandler;
-use App\StatisticsManager;
+use App\Configuration\MainConfiguration;
+use App\Infrastructure\Queue\Producer;
+use App\Infrastructure\RedisClient;
+use App\Service\EventHandler;
+use App\Service\StatisticsManager;
 
 header('Content-Type: application/json');
 
@@ -14,19 +17,25 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 if ($method === 'POST' && $path === '/event') {
     $input = file_get_contents('php://input');
     $data = json_decode($input, true);
+    $redis = new RedisClient();
     
     if (json_last_error() !== JSON_ERROR_NONE) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid JSON']);
         exit;
     }
-    
-    $handler = new EventHandler(__DIR__ . '/../storage/events.txt');
+
+    // Temporary disabled handler
+    // $handler = new EventHandler(__DIR__ . '/../storage/events.txt');
     
     try {
-        $result = $handler->handleEvent($data);
+
         http_response_code(201);
-        echo json_encode($result);
+        $producer = new Producer($redis);
+        $producer->push(MainConfiguration::QUEUE_NAME, $data);
+        // $result = $handler->handleEvent($data);
+        // echo json_encode($result);
+        echo "\nok\n";
     } catch (Exception $e) {
         http_response_code(400);
         echo json_encode(['error' => $e->getMessage()]);

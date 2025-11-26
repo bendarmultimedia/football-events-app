@@ -1,6 +1,8 @@
 <?php
 
-namespace App;
+namespace App\Service;
+
+use App\Storage\FileStorage;
 
 class StatisticsManager
 {
