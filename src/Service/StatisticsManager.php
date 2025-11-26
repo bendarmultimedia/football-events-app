@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Domain\Aggregate\TeamStatistics;
 use App\Storage\FileStorage;
 
 class StatisticsManager
@@ -20,10 +21,11 @@ class StatisticsManager
         }
     }
     
-    public function updateTeamStatistics(string $matchId, string $teamId, string $statType, int $value = 1): void
+    public function updateTeamStatistics(TeamStatistics $newStats): void
     {
         $stats = $this->getStatistics();
-        
+        $matchId = $newStats->getMatchId()->value();
+        $teamId = $newStats->getTeamId()->value();
         if (!isset($stats[$matchId])) {
             $stats[$matchId] = [];
         }
@@ -32,18 +34,16 @@ class StatisticsManager
             $stats[$matchId][$teamId] = [];
         }
         
-        if (!isset($stats[$matchId][$teamId][$statType])) {
-            $stats[$matchId][$teamId][$statType] = 0;
-        }
-        
-        $stats[$matchId][$teamId][$statType] += $value;
-        
+        $stats[$matchId][$teamId]['fouls'] = $newStats->fouls();
+        $stats[$matchId][$teamId]['goals'] = $newStats->goals();
+
         $this->saveStatistics($stats);
     }
     
     public function getTeamStatistics(string $matchId, string $teamId): array
     {
         $stats = $this->getStatistics();
+
         return $stats[$matchId][$teamId] ?? [];
     }
     

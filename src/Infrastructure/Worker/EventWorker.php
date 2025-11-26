@@ -2,6 +2,8 @@
 
 namespace App\Infrastructure\Worker;
 
+use App\Application\EventService;
+use App\Application\StatisticsService;
 use App\Configuration\MainConfiguration;
 use App\Infrastructure\Queue\Consumer;
 use App\Infrastructure\RedisClient;
@@ -13,16 +15,17 @@ final class EventWorker
 {
 
     private Consumer $consumer;
-    private EventHandler $eventHandler;
     private Redis $publisher;
+    private EventService $eventService;
 
     public function __construct(public RedisClient $redisClient)
     {
         try {
-
+        $pathPrefix = __DIR__ . '/../../../';
         $this->consumer = new Consumer($this->redisClient);
-        $this->eventHandler = new EventHandler(
-            __DIR__ . '/../../../' . MainConfiguration::EVENTS_STORAGE_PATH
+        $this->eventService = new EventService(
+            (new StatisticsService($pathPrefix . MainConfiguration::STATISTICS_STORAGE_PATH)),
+            $pathPrefix . MainConfiguration::EVENTS_STORAGE_PATH,
         );
         $this->publisher = $redisClient->getConnection();
         } catch (\Throwable $e) {
@@ -40,13 +43,11 @@ final class EventWorker
                     continue;
                 }
                 echo "[" . date('H:i:s') . "] Processing event: " . ($eventData['type'] ?? 'unknown') . "\n";
-                $result = $this->eventHandler->handleEvent($eventData);
-                if (isset($result['event'])) {
-                    $message = json_encode($result['event']);
-                    $this->publisher->rPush(MainConfiguration::REALTIME_CHANNEL, $message);
-                }
+                $event = $this->eventService->handle($eventData);
+                $message = $event->toJson();
+                $this->publisher->rPush(MainConfiguration::REALTIME_CHANNEL, $message);
 
-                echo json_encode($result);
+                echo $event->toJson() . "\n";
                 echo "[" . date('H:i:s') . "] Done.\n";
             } catch (Throwable $e) {
                 echo "[" . date('H:i:s') . "] ERROR: " . $e->getMessage() . "\n";

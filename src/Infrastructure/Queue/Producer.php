@@ -19,6 +19,8 @@ final class Producer
     {
         $payload = json_encode($data);
 
+        var_dump($payload);
+
         if ($payload === false) {
             throw new InvalidArgumentException("Data cannot be serialized to JSON format.");
         }
