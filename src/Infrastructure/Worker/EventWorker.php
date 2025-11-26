@@ -14,6 +14,7 @@ final class EventWorker
 
     private Consumer $consumer;
     private EventHandler $eventHandler;
+    private Redis $publisher;
 
     public function __construct(public RedisClient $redisClient)
     {
@@ -23,6 +24,7 @@ final class EventWorker
         $this->eventHandler = new EventHandler(
             __DIR__ . '/../../../' . MainConfiguration::EVENTS_STORAGE_PATH
         );
+        $this->publisher = $redisClient->getConnection();
         } catch (\Throwable $e) {
             die("CRITICAL ERROR: " . $e->getMessage() . "\n");
         }
@@ -39,7 +41,10 @@ final class EventWorker
                 }
                 echo "[" . date('H:i:s') . "] Processing event: " . ($eventData['type'] ?? 'unknown') . "\n";
                 $result = $this->eventHandler->handleEvent($eventData);
-
+                if (isset($result['event'])) {
+                    $message = json_encode($result['event']);
+                    $this->publisher->rPush(MainConfiguration::REALTIME_CHANNEL, $message);
+                }
 
                 echo json_encode($result);
                 echo "[" . date('H:i:s') . "] Done.\n";

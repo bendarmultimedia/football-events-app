@@ -3,3 +3,4 @@
 vendor
 storage/*
 *Zone.Identifier
+redis-data/*

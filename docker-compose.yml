@@ -17,7 +17,19 @@ services:
     working_dir: /app
     depends_on:
       - redis
-    profiles: [ 'worker' ]
+    profiles: ['worker']
+
+  sse:
+    build: .
+    container_name: football_events_sse
+    command: php bin/sse.php
+    ports:
+      - "8001:8001"
+    volumes:
+      - .:/app
+    working_dir: /app
+    depends_on:
+      - redis
 
   redis:
     image: redis:alpine

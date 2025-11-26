@@ -12,6 +12,8 @@ final class MainConfiguration
     public const int EMPTY_QUEUE_TIMEOUT = 5;
     public const string QUEUE_NAME = 'events_queue';
 
+    public const string REALTIME_CHANNEL = 'live_events';
+
     public static function getSettings(): array
     {
         $reflection = new ReflectionClass(__CLASS__);
